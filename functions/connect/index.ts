@@ -5,7 +5,7 @@ const client = new DynamoDBClient({ region: 'us-east-1' });
 
 const createResponse = (statusCode: number, message?: string) => ({
     statusCode,
-    message
+    body: message
 });
 
 const badRequest = (message: string) => createResponse(400, message);
@@ -40,5 +40,5 @@ export const handler: Handler = async (event: APIGatewayEvent, context: Context)
         return serverError('Unable to create a session due to unknown server error');
     }
 
-    return ok();
+    return ok('Connected');
 };

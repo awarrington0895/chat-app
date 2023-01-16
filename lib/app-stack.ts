@@ -36,5 +36,7 @@ export class AppStack extends Stack {
     chatApi.addRoute('$connect', {
       integration: new WebSocketLambdaIntegration('ConnectIntegration', connectFn)
     });
+
+    connectionTable.grantReadWriteData(connectFn);
   }
 }
