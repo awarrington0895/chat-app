@@ -11,8 +11,6 @@ import { ok, serverError } from "../shared";
 export const handler: Handler = async (event: APIGatewayEvent) => {
   const endpoint = `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
 
-  console.log(endpoint);
-
   const client = new ApiGatewayManagementApiClient({
     region: "us-east-1",
     endpoint,

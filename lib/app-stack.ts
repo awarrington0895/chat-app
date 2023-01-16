@@ -1,14 +1,11 @@
 import { WebSocketApi, WebSocketStage } from "@aws-cdk/aws-apigatewayv2-alpha";
-import { WebSocketLambdaIntegration } from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
 import {
   aws_dynamodb as dynamo,
-  aws_lambda as lambda,
   Stack,
   StackProps,
 } from "aws-cdk-lib";
-import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
-import * as path from "path";
+import { ChatRoute } from "./chat-route";
 
 export class AppStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -29,57 +26,24 @@ export class AppStack extends Stack {
       autoDeploy: true,
     });
 
-    const connectFn = new NodejsFunction(this, "connectFn", {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      entry: path.join(__dirname, `/../functions/connect/index.ts`),
-      handler: "handler",
-      environment: {
-        table: connectionTable.tableName,
-      },
+    new ChatRoute(this, 'connectRoute', {
+      functionName: 'connect',
+      routeName: '$connect',
+      owningApi: chatApi,
+      table: connectionTable
     });
 
-    const disconnectFn = new NodejsFunction(this, "disconnectFn", {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      entry: path.join(__dirname, `/../functions/disconnect/index.ts`),
-      handler: "handler",
-      environment: {
-        table: connectionTable.tableName,
-      },
+    new ChatRoute(this, 'defaultRoute', {
+      functionName: 'default',
+      routeName: '$default',
+      owningApi: chatApi
     });
 
-    const defaultFn = new NodejsFunction(this, "defaultFn", {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      entry: path.join(__dirname, `/../functions/default/index.ts`),
-      handler: "handler",
-      environment: {
-        table: connectionTable.tableName,
-      },
+    new ChatRoute(this, 'disconnectRoute', {
+      functionName: 'disconnect',
+      routeName: '$disconnect',
+      owningApi: chatApi,
+      table: connectionTable
     });
-
-    connectionTable.grantReadWriteData(connectFn);
-    connectionTable.grantReadWriteData(disconnectFn);
-
-    chatApi.addRoute("$connect", {
-      integration: new WebSocketLambdaIntegration(
-        "ConnectIntegration",
-        connectFn
-      ),
-    });
-
-    chatApi.addRoute("$disconnect", {
-      integration: new WebSocketLambdaIntegration(
-        "DisconnectIntegration",
-        disconnectFn
-      ),
-    });
-
-    chatApi.addRoute("$default", {
-      integration: new WebSocketLambdaIntegration(
-        "DefaultIntegration",
-        defaultFn
-      ),
-    });
-
-    chatApi.grantManageConnections(defaultFn);
   }
 }
