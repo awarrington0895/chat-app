@@ -1,9 +1,5 @@
 import { WebSocketApi, WebSocketStage } from "@aws-cdk/aws-apigatewayv2-alpha";
-import {
-  aws_dynamodb as dynamo,
-  Stack,
-  StackProps,
-} from "aws-cdk-lib";
+import { aws_dynamodb as dynamo, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { ChatRoute } from "./chat-route";
 
@@ -26,31 +22,31 @@ export class AppStack extends Stack {
       autoDeploy: true,
     });
 
-    new ChatRoute(this, 'connectRoute', {
-      functionName: 'connect',
-      routeName: '$connect',
+    new ChatRoute(this, "connectRoute", {
+      functionName: "connect",
+      routeName: "$connect",
       owningApi: chatApi,
-      table: connectionTable
+      table: connectionTable,
     });
 
-    new ChatRoute(this, 'defaultRoute', {
-      functionName: 'default',
-      routeName: '$default',
-      owningApi: chatApi
+    new ChatRoute(this, "defaultRoute", {
+      functionName: "default",
+      routeName: "$default",
+      owningApi: chatApi,
     });
 
-    new ChatRoute(this, 'disconnectRoute', {
-      functionName: 'disconnect',
-      routeName: '$disconnect',
+    new ChatRoute(this, "disconnectRoute", {
+      functionName: "disconnect",
+      routeName: "$disconnect",
       owningApi: chatApi,
-      table: connectionTable
+      table: connectionTable,
     });
 
-    new ChatRoute(this, 'sendmessageRoute', {
-      functionName: 'sendmessage',
-      routeName: 'sendmessage',
+    new ChatRoute(this, "sendmessageRoute", {
+      functionName: "sendmessage",
+      routeName: "sendmessage",
       owningApi: chatApi,
-      table: connectionTable
+      table: connectionTable,
     });
   }
 }
