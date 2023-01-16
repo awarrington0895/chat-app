@@ -1,18 +1,8 @@
 import { APIGatewayEvent, Context, Handler } from 'aws-lambda';
 import { DynamoDBClient, PutItemCommand, PutItemCommandInput } from '@aws-sdk/client-dynamodb';
+import { badRequest, ok, serverError } from '../shared';
 
 const client = new DynamoDBClient({ region: 'us-east-1' });
-
-const createResponse = (statusCode: number, message?: string) => ({
-    statusCode,
-    body: message
-});
-
-const badRequest = (message: string) => createResponse(400, message);
-
-const ok = (message?: string) => createResponse(200, message);
-
-const serverError = (message: string) => createResponse(500, message);
 
 export const handler: Handler = async (event: APIGatewayEvent, context: Context) => {
     const connectionId = event.requestContext.connectionId;
