@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "esbenp.prettier-vscode",
+        "amazonwebservices.aws-toolkit-vscode"
+    ]
+}

@@ -1,16 +1,24 @@
-import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { Stack, StackProps, aws_dynamodb as dynamo } from "aws-cdk-lib";
+import { WebSocketApi, WebSocketStage } from "@aws-cdk/aws-apigatewayv2-alpha";
+import { Construct } from "constructs";
 
-export class AppStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+export class AppStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const connectionTable = new dynamo.Table(this, "connectionTable", {
+      partitionKey: {
+        name: "connectionId",
+        type: dynamo.AttributeType.STRING,
+      },
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'AppQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const chatApi = new WebSocketApi(this, "chatApi");
+
+    new WebSocketStage(this, "productionStage", {
+      webSocketApi: chatApi,
+      stageName: "production",
+      autoDeploy: true,
+    });
   }
 }
