@@ -45,5 +45,12 @@ export class AppStack extends Stack {
       owningApi: chatApi,
       table: connectionTable
     });
+
+    new ChatRoute(this, 'sendmessageRoute', {
+      functionName: 'sendmessage',
+      routeName: 'sendmessage',
+      owningApi: chatApi,
+      table: connectionTable
+    });
   }
 }
