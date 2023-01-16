@@ -47,6 +47,15 @@ export class AppStack extends Stack {
       },
     });
 
+    const defaultFn = new NodejsFunction(this, "defaultFn", {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, `/../functions/default/index.ts`),
+      handler: "handler",
+      environment: {
+        table: connectionTable.tableName,
+      },
+    });
+
     connectionTable.grantReadWriteData(connectFn);
     connectionTable.grantReadWriteData(disconnectFn);
 
@@ -63,5 +72,14 @@ export class AppStack extends Stack {
         disconnectFn
       ),
     });
+
+    chatApi.addRoute("$default", {
+      integration: new WebSocketLambdaIntegration(
+        "DefaultIntegration",
+        defaultFn
+      ),
+    });
+
+    chatApi.grantManageConnections(defaultFn);
   }
 }
