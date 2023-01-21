@@ -1,15 +1,20 @@
-import { APIGatewayEvent, Context, Handler } from "aws-lambda";
+import { APIGatewayEvent, Handler } from "aws-lambda";
 import {
   DynamoDBClient,
-  PutItemCommand,
-  PutItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
-import { badRequest, HandlerResponse, ok, serverError } from "../shared";
+import {
+  badRequest,
+  createConnectionService,
+  HandlerResponse,
+  ok,
+} from "../shared";
 import * as F from "fp-ts/function";
 import * as TE from "fp-ts/TaskEither";
-import * as T from "fp-ts/Task";
 
-const client = new DynamoDBClient({ region: "us-east-1" });
+const connectionService = createConnectionService({
+  dynamodb: new DynamoDBClient({ region: "us-east-1" }),
+  tableName: process.env.table,
+});
 
 const parseConnectionId = (
   event: APIGatewayEvent
@@ -21,31 +26,11 @@ const parseConnectionId = (
     )
   );
 
-const toPutItemInput =
-  (connectionId: string) => (tableName: string | undefined) => ({
-    TableName: tableName,
-    Item: {
-      connectionId: {
-        S: connectionId,
-      },
-    },
-  });
-
-const createPutItemCommand = (param: PutItemCommandInput) =>
-  new PutItemCommand(param);
-
-const tryCreateConnection = (command: PutItemCommand) =>
-  TE.tryCatch(
-    () => client.send(command),
-    () => serverError("Unable to create a session due to unknown server error")
-  );
-
 export const handler: Handler = async (event: APIGatewayEvent) =>
   F.pipe(
-    parseConnectionId(event),
-    TE.map((cid) => F.pipe(process.env.table, toPutItemInput(cid))),
-    TE.map(createPutItemCommand),
-    TE.chain(tryCreateConnection),
+    event,
+    parseConnectionId,
+    TE.chain(connectionService.createConnection),
     TE.map(() => ok("Connected")),
-    TE.fold(T.of, T.of)
+    TE.match(F.identity, F.identity)
   )();
