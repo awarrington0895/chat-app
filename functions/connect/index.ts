@@ -11,7 +11,7 @@ import * as T from "fp-ts/Task";
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 
-const retrieveConnectionId = (
+const parseConnectionId = (
   event: APIGatewayEvent
 ): TE.TaskEither<HandlerResponse, string> =>
   F.pipe(
@@ -20,15 +20,6 @@ const retrieveConnectionId = (
       badRequest("Must have a valid connectionId to create session")
     )
   );
-
-// const toPutItemInput = (tableName: string | undefined, connectionId: string): PutItemCommandInput => ({
-//     TableName: tableName,
-//     Item: {
-//         connectionId: {
-//             S: connectionId
-//         }
-//     }
-// });
 
 const toPutItemInput =
   (connectionId: string) => (tableName: string | undefined) => ({
@@ -49,12 +40,9 @@ const tryCreateConnection = (command: PutItemCommand) =>
     () => serverError("Unable to create a session due to unknown server error")
   );
 
-export const handler: Handler = async (
-  event: APIGatewayEvent,
-  context: Context
-) =>
+export const handler: Handler = async (event: APIGatewayEvent) =>
   F.pipe(
-    retrieveConnectionId(event),
+    parseConnectionId(event),
     TE.map((cid) => F.pipe(process.env.table, toPutItemInput(cid))),
     TE.map(createPutItemCommand),
     TE.chain(tryCreateConnection),
