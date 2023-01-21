@@ -1,4 +1,11 @@
-const createResponse = (statusCode: number, message?: string) => ({
+import { number, string } from "fp-ts";
+
+export interface HandlerResponse {
+    readonly statusCode: number
+    readonly body?: string;
+}
+
+const createResponse = (statusCode: number, message?: string): HandlerResponse => ({
     statusCode,
     body: message
 });
