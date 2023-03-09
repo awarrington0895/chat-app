@@ -26,11 +26,11 @@ const parseConnectionId = (
     )
   );
 
-export const handler: Handler = async (event: APIGatewayEvent) =>
+export const handler: Handler = async (event: APIGatewayEvent): Promise<HandlerResponse> =>
   F.pipe(
     event,
     parseConnectionId,
     TE.chain(connectionService.createConnection),
     TE.map(() => ok("Connected")),
-    TE.match(F.identity, F.identity)
+    TE.toUnion,
   )();
