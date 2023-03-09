@@ -1,9 +1,6 @@
 import {
-  DeleteItemCommand,
-  DeleteItemCommandInput,
-  DynamoDBClient,
-  PutItemCommand,
-  PutItemCommandInput,
+  DeleteItemCommand, DynamoDBClient,
+  PutItemCommand
 } from "@aws-sdk/client-dynamodb";
 import * as F from "fp-ts/function";
 import * as TE from "fp-ts/TaskEither";
@@ -26,11 +23,11 @@ export const createConnectionService = ({ dynamodb, tableName }: Config) => {
 
   const createDeletionDetails = (connectionId: string) => new DeleteItemCommand({
     TableName: tableName,
-        Key: {
-            connectionId: {
-                S: connectionId
-            }
-        }
+    Key: {
+      connectionId: {
+        S: connectionId
+      }
+    }
   });
 
   const tryCreateConnection = (command: PutItemCommand) =>
