@@ -1,34 +1,18 @@
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { APIGatewayEvent, Handler } from 'aws-lambda';
-import { DeleteItemCommand, DeleteItemCommandInput, DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { badRequest, ok, serverError } from '../shared';
+import * as F from 'fp-ts/function';
+import * as TE from 'fp-ts/TaskEither';
+import { createConnectionService, HandlerResponse, ok, parseConnectionId } from '../shared';
 
-const client = new DynamoDBClient({ region: 'us-east-1' });
+const connectionService = createConnectionService({
+    dynamodb: new DynamoDBClient({ region: 'us-east-1' }),
+    tableName: process.env.table
+});
 
-export const handler: Handler = async (event: APIGatewayEvent) => {
-    const connectionId = event.requestContext.connectionId;
-
-    if (connectionId == null) {
-        return badRequest('Must have a valid connectionId to disconnect a session');
-    }
-
-    const params: DeleteItemCommandInput = {
-        TableName: process.env.table,
-        Key: {
-            connectionId: {
-                S: connectionId
-            }
-        }
-    };
-
-    const deleteConnection = new DeleteItemCommand(params);
-
-    try {
-        await client.send(deleteConnection);    
-    } catch (err) {
-        console.error(err);
-
-        return serverError('Unable to remove a session due to unknown server error');
-    }
-
-    return ok('Disconnected');
-};
+export const handler: Handler = async (event: APIGatewayEvent): Promise<HandlerResponse> => F.pipe(
+    event,
+    parseConnectionId,
+    TE.chain(connectionService.deleteConnection),
+    TE.map(() => ok('Disconnected')),
+    TE.toUnion
+)();

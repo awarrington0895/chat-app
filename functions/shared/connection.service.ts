@@ -15,10 +15,6 @@ type Config = {
 };
 
 export const createConnectionService = ({ dynamodb, tableName }: Config) => {
-  const createPutItemCommand = (details: PutItemCommandInput) => new PutItemCommand(details);
-
-  const createDeleteItemCommand = (details: DeleteItemCommandInput) => new DeleteItemCommand(details);
-
   const createConnectionDetails = (connectionId: string) => new PutItemCommand({
     TableName: tableName,
     Item: {
