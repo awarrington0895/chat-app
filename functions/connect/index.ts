@@ -1,10 +1,10 @@
-import { APIGatewayEvent, Context, Handler } from 'aws-lambda';
+import { APIGatewayEvent, Handler } from 'aws-lambda';
 import { DynamoDBClient, PutItemCommand, PutItemCommandInput } from '@aws-sdk/client-dynamodb';
 import { badRequest, ok, serverError } from '../shared';
 
 const client = new DynamoDBClient({ region: 'us-east-1' });
 
-export const handler: Handler = async (event: APIGatewayEvent, context: Context) => {
+export const handler: Handler = async (event: APIGatewayEvent) => {
     const connectionId = event.requestContext.connectionId;
 
     if (connectionId == null) {
@@ -16,6 +16,12 @@ export const handler: Handler = async (event: APIGatewayEvent, context: Context)
         Item: {
             connectionId: {
                 S: connectionId
+            },
+            personId: {
+                S: event.requestContext.authorizer?.principalId
+            },
+            groups: {
+                S: event.requestContext.authorizer?.groups
             }
         }
     };

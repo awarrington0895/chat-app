@@ -1,7 +1,8 @@
 import { WebSocketApi, WebSocketStage } from "@aws-cdk/aws-apigatewayv2-alpha";
-import { aws_dynamodb as dynamo, Stack, StackProps } from "aws-cdk-lib";
+import { aws_dynamodb as dynamo, Stack, StackProps, aws_lambda as lambda } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { ChatRoute } from "./chat-route";
+
 
 export class AppStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
