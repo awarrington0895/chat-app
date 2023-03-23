@@ -52,10 +52,23 @@ export const handler: Handler = async (event: APIGatewayEvent) => {
     return serverError("Failed to fetch connections");
   }
 
+  const userConnection = connections.Items?.filter(
+    (item) => item["connectionId"].S === event.requestContext.connectionId
+  )[0]!;
+
+  const user = {
+    connectionId: userConnection["connectionId"].S,
+    groups: JSON.parse(userConnection["groups"].S || "[]") as string[],
+  };
+
   const sendMessages = connections.Items?.map(async (item) => {
     const connectionId = item["connectionId"].S;
+    const groups = JSON.parse(item["groups"].S || "[]") as string[];
 
-    if (connectionId !== event.requestContext.connectionId) {
+    const targetHasAccess =
+      groups.includes("chat.admin") || !user.groups.includes("chat.admin");
+
+    if (connectionId !== event.requestContext.connectionId && targetHasAccess) {
       try {
         await apigw.send(
           new PostToConnectionCommand({

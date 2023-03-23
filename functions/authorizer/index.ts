@@ -1,52 +1,65 @@
-import { APIGatewayRequestAuthorizerEvent } from 'aws-lambda';
-import * as jwt from 'jsonwebtoken';
+import {
+  APIGatewayAuthorizerResult,
+  APIGatewayRequestAuthorizerEvent,
+} from "aws-lambda";
+import * as jwt from "jsonwebtoken";
 
-export const handler = async (event: APIGatewayRequestAuthorizerEvent) => {
-    // TODO implement
-    console.log("Event: ", event);
-
-    if (!event.queryStringParameters) {
-        return generateDeny('me', event.methodArn);
-    }
-
-    console.log("Decoded: ", jwt.decode(event.queryStringParameters['access_token']!));
-
-    return generateDeny('me', event.methodArn);
+type CustomJwtPayload = {
+  personId: string;
+  groups: string[];
 };
 
-type PolicyStatement = {
-    Action: string;
-    Effect: string;
-    Resource: string;
-}
+export const handler = async (
+  event: APIGatewayRequestAuthorizerEvent
+): Promise<APIGatewayAuthorizerResult> => {
+  if (!event?.queryStringParameters?.access_token) {
+    return generateDeny("anonymous", event.methodArn);
+  }
 
-type AuthorizerResponse = {
-    principalId: string,
+  const decoded = jwt.decode(
+    event.queryStringParameters["access_token"]
+  ) as CustomJwtPayload;
+
+  if (!decoded?.personId) {
+    return generateDeny("anonymous", event.methodArn);
+  }
+
+  console.log("Decoded: ", decoded);
+
+  return {
+    ...generateAllow(decoded.personId, event.methodArn),
+    context: {
+      groups: JSON.stringify(decoded.groups),
+    },
+  };
+};
+
+function generatePolicy(
+  principalId: string,
+  effect: string,
+  resource: string
+): APIGatewayAuthorizerResult {
+  if (!principalId || !effect || !resource) {
+    throw Error("Invalid policy inputs");
+  }
+
+  return {
+    principalId,
     policyDocument: {
-        Version: string,
-        Statement: PolicyStatement[]
-    }
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Action: "execute-api:Invoke",
+          Effect: effect,
+          Resource: resource,
+        },
+      ],
+    },
+  };
 }
 
-function generatePolicy(principalId: string, effect: string, resource: string): AuthorizerResponse {
-    // Required output:
-    if (!principalId || !effect || !resource) {
-        throw Error('Invalid policy inputs');
-    }
+const generateAllow = (principalId: string, resource: string) =>
+  generatePolicy(principalId, "Allow", resource);
 
-    return {
-        principalId,
-        policyDocument: {
-            Version: '2012-10-17',
-            Statement: [{
-                Action: 'execute-api:Invoke',
-                Effect: effect,
-                Resource: resource
-            }]
-        }
-    };
-}
-
-const generateAllow = (principalId: string, resource: string) => generatePolicy(principalId, 'Allow', resource);
-
-const generateDeny = (principalId: string, resource: string) => generatePolicy(principalId, 'Deny', resource);
+const generateDeny = (principalId: string, resource: string) =>
+  generatePolicy(principalId, "Deny", resource);
