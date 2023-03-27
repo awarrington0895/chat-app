@@ -11,8 +11,10 @@ interface ChatRouteProps {
   readonly functionName: string;
   readonly owningApi: WebSocketApi;
   readonly table?: dynamo.Table;
+  readonly extraEnvs?: Record<string, string>;
 }
-// test me
+
+
 export class ChatRoute extends Construct {
   public readonly fn: NodejsFunction;
 
@@ -21,7 +23,10 @@ export class ChatRoute extends Construct {
 
     const hasTable = props.table != null;
 
+    const hasExtraEnvs = props.extraEnvs != null;
+
     const environment = {
+      ...(hasExtraEnvs && props.extraEnvs),
       ...(hasTable && { table: props.table.tableName }),
     };
 
