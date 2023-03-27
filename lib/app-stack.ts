@@ -1,7 +1,9 @@
 import { WebSocketApi, WebSocketStage } from "@aws-cdk/aws-apigatewayv2-alpha";
 import { aws_dynamodb as dynamo, Stack, StackProps, aws_lambda as lambda } from "aws-cdk-lib";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import { ChatRoute } from "./chat-route";
+import * as path from 'path';
 
 
 export class AppStack extends Stack {
@@ -13,6 +15,12 @@ export class AppStack extends Stack {
         name: "connectionId",
         type: dynamo.AttributeType.STRING,
       },
+    });
+
+    new NodejsFunction(this, 'newsletterFn', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, `/../newsletter/index.ts`),
+      handler: 'handler'
     });
 
     const chatApi = new WebSocketApi(this, "chatApi");
