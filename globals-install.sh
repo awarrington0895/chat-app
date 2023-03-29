@@ -1,1 +1,1 @@
-npm i -g typescript aws-cdk
+npm i -g typescript aws-cdk wscat
