@@ -1,31 +1,45 @@
-import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
+import { PublishCommand, PublishCommandInput, PublishCommandOutput, SNSClient } from "@aws-sdk/client-sns";
 import { Handler } from "aws-lambda";
-
-type SubscriptionRequest = {
-  firstName: string;
-  lastName: string;
-  email: string;
-};
+import { HandlerResponse, badRequest, ok, serverError } from "../functions/shared";
+import { pipe } from 'fp-ts/function';
+import * as TE from 'fp-ts/TaskEither';
+import * as J from 'fp-ts/Json';
+import * as E from 'fp-ts/Either';
+import * as T from 'fp-ts/Task';
 
 const snsClient = new SNSClient({
   region: "us-east-1",
 });
 
-export const handler: Handler = async (event: SubscriptionRequest) => {
-  console.log(event);
+export const handler: Handler = async event => pipe(event, publishEventToSns)();
 
-  const command = new PublishCommand({
-    Message: JSON.stringify(event),
-    TopicArn: process.env.topicArn,
-    Subject: "Newsletter Subscription Notification",
-  });
+const publishEventToSns = (event: SubscriptionRequest): T.Task<HandlerResponse> => pipe(
+  stringifyEvent(event),
+  TE.fromEither,
+  TE.map(getSnsInput),
+  TE.chain(publishSubscription),
+  TE.map(() => ok()),
+  TE.toUnion
+);
 
-  const response = await snsClient.send(command);
+type SubscriptionRequest = Readonly<{
+  firstName: string;
+  lastName: string;
+  email: string;
+}>;
 
-  console.log("SNS response: ", response);
+const stringifyEvent = (event: SubscriptionRequest): E.Either<HandlerResponse, string> => pipe(
+  J.stringify(event),
+  E.mapLeft(e => badRequest('Unable to parse input: ' + e))
+);
 
-  return {
-    statusCode: 200,
-    message: "Ok",
-  };
-};
+const getSnsInput = (event: string): PublishCommandInput => ({
+  Message: event,
+  TopicArn: process.env.topicArn,
+  Subject: "Newsletter Subscription Notification",
+});
+
+const publishSubscription = (input: PublishCommandInput): TE.TaskEither<HandlerResponse, PublishCommandOutput> => TE.tryCatch(
+  () => snsClient.send(new PublishCommand(input)),
+  () => serverError('Unable to publish message to SNS for newsletter notification')
+);

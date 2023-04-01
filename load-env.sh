@@ -1,4 +1,4 @@
-export WSS_URL=wss://2qolgah2oh.execute-api.us-east-1.amazonaws.com/production
+export WSS_URL=wss://04aeawvju3.execute-api.us-east-1.amazonaws.com/production
 
 export JOHN_ADMIN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gQWRtaW4iLCJpYXQiOjE1MTYyMzkwMjIsInBlcnNvbklkIjoiODEzNDU0ZTctOTk0Ny00OWY4LWI4MWItODI2MDVhZDY3ZmM2IiwiZ3JvdXBzIjpbImNoYXQuYWRtaW4iLCJjaGF0LnVzZXIiXX0.ClRD965x9KzOFalk6MFCSVDj8F8wGpo8eAQ0YGQhbQo
 

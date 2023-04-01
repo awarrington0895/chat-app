@@ -3,4 +3,6 @@
   "editor.fontLigatures": true,
   "editor.fontSize": 16,
   "terminal.integrated.fontFamily": "Fira Code, Consolas, monospace",
+
+  "zenMode.hideLineNumbers": false
 }
