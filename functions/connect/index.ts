@@ -4,9 +4,10 @@ import {
   PutItemCommand,
   PutItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
-import { HandlerResponse, badRequest, ok, serverError } from "../shared";
+import { EventParser, HandlerResponse, badRequest, ok, serverError } from "../shared";
 import { pipe } from "fp-ts/function";
 import * as TE from "fp-ts/TaskEither";
+
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 
@@ -18,9 +19,9 @@ export const handler: Handler = async (
     TE.right,
     TE.bindTo("event"),
     TE.bind("table", () => parseTableName(process.env.table)),
-    TE.bind("connectionId", ({ event }) => parseConnectionId(event)),
-    TE.bind("principalId", ({ event }) => parsePrincipalId(event)),
-    TE.bind("groups", ({ event }) => parseGroups(event)),
+    TE.bind("connectionId", ({ event }) => EventParser.connectionId(event)),
+    TE.bind("principalId", ({ event }) => EventParser.principalId(event)),
+    TE.bind("groups", ({ event }) => EventParser.groups(event)),
     TE.map(createConnectionParams),
     TE.chain(params => pipe(client, createConnection(params))),
     TE.map(() => ok("Connected")),
@@ -38,26 +39,6 @@ const parseTableName = (tableName: string | undefined): TE.TaskEither<HandlerRes
   tableName,
   TE.fromNullable(serverError("Unable to create connection due to server error"))
 );
-
-const parsePrincipalId = (event: APIGatewayEvent) =>
-  pipe(
-    event.requestContext.authorizer?.principalId,
-    parseEventKey("principalId")
-  );
-
-const parseGroups = (event: APIGatewayEvent) =>
-  pipe(event.requestContext.authorizer?.groups, parseEventKey("groups"));
-
-const parseConnectionId = (event: APIGatewayEvent) =>
-  pipe(event.requestContext.connectionId, parseEventKey("connectionId"));
-
-const parseEventKey =
-  (keyName: string) =>
-  (key: string | undefined): TE.TaskEither<HandlerResponse, string> =>
-    pipe(
-      key,
-      TE.fromNullable(badRequest(`Event must have a valid ${keyName}`))
-    );
 
 const createConnectionParams = ({
   table,
