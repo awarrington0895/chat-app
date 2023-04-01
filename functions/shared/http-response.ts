@@ -1,4 +1,9 @@
-const createResponse = (statusCode: number, message?: string) => ({
+export type HandlerResponse = Readonly<{
+  statusCode: number;
+  body?: string;
+}>
+
+const createResponse = (statusCode: number, message?: string): HandlerResponse => ({
   statusCode,
   body: message
 });
