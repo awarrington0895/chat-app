@@ -17,20 +17,27 @@ export const handler: Handler = async (
     event,
     TE.right,
     TE.bindTo("event"),
+    TE.bind("table", () => parseTableName(process.env.table)),
     TE.bind("connectionId", ({ event }) => parseConnectionId(event)),
     TE.bind("principalId", ({ event }) => parsePrincipalId(event)),
     TE.bind("groups", ({ event }) => parseGroups(event)),
     TE.map(createConnectionParams),
-    TE.chain(createConnection),
+    TE.chain(params => pipe(client, createConnection(params))),
     TE.map(() => ok("Connected")),
     TE.toUnion
   )();
 
-type ConnectionInput = {
+type ConnectionInput = Readonly<{
+  table: string;
   connectionId: string;
   principalId: string;
   groups: string;
-};
+}>;
+
+const parseTableName = (tableName: string | undefined): TE.TaskEither<HandlerResponse, string> => pipe(
+  tableName,
+  TE.fromNullable(serverError("Unable to create connection due to server error"))
+);
 
 const parsePrincipalId = (event: APIGatewayEvent) =>
   pipe(
@@ -53,12 +60,13 @@ const parseEventKey =
     );
 
 const createConnectionParams = ({
+  table,
   connectionId,
   principalId,
   groups,
 }: ConnectionInput) => {
   return {
-    TableName: process.env.table,
+    TableName: table,
     Item: {
       connectionId: {
         S: connectionId,
@@ -73,7 +81,7 @@ const createConnectionParams = ({
   };
 };
 
-const createConnection = (params: PutItemCommandInput) =>
+const createConnection = (params: PutItemCommandInput) => (client: DynamoDBClient) =>
   TE.tryCatch(
     () => client.send(new PutItemCommand(params)),
     () => serverError("Unable to create a session due to unknown server error")
