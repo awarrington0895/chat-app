@@ -1,6 +1,6 @@
 source ./load-env.sh
 
-select user in "John Admin" "John User" "Terry Admin" "Terry User"
+select user in "John Admin" "John User" "Terry Admin" "Terry User" "Allen Anonymous"
 do 
   case $user in
     "John Admin")
@@ -14,6 +14,9 @@ do
         break;;
     "Terry User")
         token=$TERRY_USER
+        break;;
+    "Allen Anonymous")
+        token=$ALLEN_ANON
         break;;
     *)
         echo "Invalid";;

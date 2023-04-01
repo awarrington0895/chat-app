@@ -20,11 +20,18 @@ export const handler = async (
     event.queryStringParameters["access_token"]
   ) as CustomJwtPayload;
 
+  console.log("Decoded: ", decoded);
+
   if (!decoded?.personId) {
     return generateDeny("anonymous", event.methodArn);
   }
 
-  console.log("Decoded: ", decoded);
+  const userInAGroup = decoded.groups.some(group => group === 'chat.admin' || group === 'chat.user');
+
+  if (!userInAGroup) {
+    return generateDeny(decoded.personId, event.methodArn);
+  }
+
 
   return {
     ...generateAllow(decoded.personId, event.methodArn),
