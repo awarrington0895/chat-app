@@ -1,4 +1,5 @@
 import {
+  APIGatewayAuthorizerEvent,
   APIGatewayAuthorizerResult,
   APIGatewayRequestAuthorizerEvent,
 } from "aws-lambda";
@@ -14,17 +15,10 @@ export const handler = async (
     decode(event?.queryStringParameters?.access_token),
     TE.fromOption(() => generateDeny("anonymous", event.methodArn)),
     TE.filterOrElse(
-      (payload) => userInAGroup(payload.groups),
-      (payload) => generateDeny(payload.personId, event.methodArn)
+      (token) => userInAGroup(token.groups),
+      (token) => generateDeny(token.personId, event.methodArn)
     ),
-    TE.map((payload) => {
-      return {
-        ...generateAllow(payload.personId, event.methodArn),
-        context: {
-          groups: JSON.stringify(payload.groups),
-        },
-      } as APIGatewayAuthorizerResult;
-    }),
+    TE.map((payload) => generatePolicyWithContext(payload, event)),
     TE.toUnion
   )();
 
@@ -32,6 +26,19 @@ type CustomJwtPayload = {
   personId: string;
   groups: string[];
 };
+
+function generatePolicyWithContext(
+  token: CustomJwtPayload,
+  event: APIGatewayRequestAuthorizerEvent
+): APIGatewayAuthorizerResult {
+  return {
+    ...generateAllow(token.personId, event.methodArn),
+    context: {
+      // TODO: Use fp-ts Json.stringify for safe stringification
+      groups: JSON.stringify(token.groups),
+    },
+  };
+}
 
 function decode(token: string | undefined): O.Option<CustomJwtPayload> {
   return pipe(
