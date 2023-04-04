@@ -1,5 +1,4 @@
 import {
-  APIGatewayAuthorizerEvent,
   APIGatewayAuthorizerResult,
   APIGatewayRequestAuthorizerEvent,
 } from "aws-lambda";
@@ -7,6 +6,9 @@ import { pipe } from "fp-ts/function";
 import * as jwt from "jsonwebtoken";
 import * as O from "fp-ts/Option";
 import * as TE from "fp-ts/TaskEither";
+import * as J from 'fp-ts/Json';
+import * as E from 'fp-ts/Either';
+
 
 export const handler = async (
   event: APIGatewayRequestAuthorizerEvent
@@ -18,7 +20,7 @@ export const handler = async (
       (token) => userInAGroup(token.groups),
       (token) => generateDeny(token.personId, event.methodArn)
     ),
-    TE.map((payload) => generatePolicyWithContext(payload, event)),
+    TE.chain(token => generatePolicyWithContext(token, event)),
     TE.toUnion
   )();
 
@@ -30,14 +32,18 @@ type CustomJwtPayload = {
 function generatePolicyWithContext(
   token: CustomJwtPayload,
   event: APIGatewayRequestAuthorizerEvent
-): APIGatewayAuthorizerResult {
-  return {
-    ...generateAllow(token.personId, event.methodArn),
-    context: {
-      // TODO: Use fp-ts Json.stringify for safe stringification
-      groups: JSON.stringify(token.groups),
-    },
-  };
+): TE.TaskEither<APIGatewayAuthorizerResult, APIGatewayAuthorizerResult> {
+  return pipe(
+    J.stringify(token.groups),
+    E.map(groups => ({
+      ...generateAllow(token.personId, event.methodArn),
+      context: {
+        groups,
+      }
+    })),
+    TE.fromEither,
+    TE.mapLeft(() => generateDeny(token.personId, event.methodArn))
+  );
 }
 
 function decode(token: string | undefined): O.Option<CustomJwtPayload> {
