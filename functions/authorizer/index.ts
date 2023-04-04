@@ -2,44 +2,63 @@ import {
   APIGatewayAuthorizerResult,
   APIGatewayRequestAuthorizerEvent,
 } from "aws-lambda";
+import { pipe } from "fp-ts/function";
 import * as jwt from "jsonwebtoken";
+import * as O from "fp-ts/Option";
+import * as TE from "fp-ts/TaskEither";
+import * as J from 'fp-ts/Json';
+import * as E from 'fp-ts/Either';
+
+
+export const handler = async (
+  event: APIGatewayRequestAuthorizerEvent
+): Promise<APIGatewayAuthorizerResult> =>
+  pipe(
+    decode(event?.queryStringParameters?.access_token),
+    TE.fromOption(() => generateDeny("anonymous", event.methodArn)),
+    TE.filterOrElse(
+      (token) => userInAGroup(token.groups),
+      (token) => generateDeny(token.personId, event.methodArn)
+    ),
+    TE.chain(token => generatePolicyWithContext(token, event)),
+    TE.toUnion
+  )();
 
 type CustomJwtPayload = {
   personId: string;
   groups: string[];
 };
 
-export const handler = async (
+function generatePolicyWithContext(
+  token: CustomJwtPayload,
   event: APIGatewayRequestAuthorizerEvent
-): Promise<APIGatewayAuthorizerResult> => {
-  if (!event?.queryStringParameters?.access_token) {
-    return generateDeny("anonymous", event.methodArn);
-  }
+): TE.TaskEither<APIGatewayAuthorizerResult, APIGatewayAuthorizerResult> {
+  return pipe(
+    J.stringify(token.groups),
+    E.map(groups => ({
+      ...generateAllow(token.personId, event.methodArn),
+      context: {
+        groups,
+      }
+    })),
+    TE.fromEither,
+    TE.mapLeft(() => generateDeny(token.personId, event.methodArn))
+  );
+}
 
-  const decoded = jwt.decode(
-    event.queryStringParameters["access_token"]
-  ) as CustomJwtPayload;
+function decode(token: string | undefined): O.Option<CustomJwtPayload> {
+  return pipe(
+    O.fromNullable(token),
+    O.map(jwt.decode),
+    O.map((decoded) => decoded as CustomJwtPayload)
+  );
+}
 
-  console.log("Decoded: ", decoded);
-
-  if (!decoded?.personId) {
-    return generateDeny("anonymous", event.methodArn);
-  }
-
-  const userInAGroup = decoded.groups.some(group => group === 'chat.admin' || group === 'chat.user');
-
-  if (!userInAGroup) {
-    return generateDeny(decoded.personId, event.methodArn);
-  }
-
-
-  return {
-    ...generateAllow(decoded.personId, event.methodArn),
-    context: {
-      groups: JSON.stringify(decoded.groups),
-    },
-  };
-};
+function userInAGroup(groups: string[]): boolean {
+  return groups.some(
+    (group) => group === "chat.admin" || group === "chat.user"
+  );
+}
 
 function generatePolicy(
   principalId: string,
