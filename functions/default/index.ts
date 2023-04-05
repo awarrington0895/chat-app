@@ -13,7 +13,7 @@ import * as TE from "fp-ts/TaskEither";
 import * as O from 'fp-ts/Option';
 import * as J from 'fp-ts/Json';
 import * as E from 'fp-ts/Either';
-import { Task } from "fp-ts/lib/Task";
+import { Task } from "fp-ts/Task";
 
 export const handler: Handler = async (event: APIGatewayEvent) => {
   return pipe(
