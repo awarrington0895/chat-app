@@ -4,6 +4,7 @@ locals {
     id = aws_apigatewayv2_api.chat_api.id
     role_name = aws_iam_role.api_gateway.name
     role_arn = aws_iam_role.api_gateway.arn
+    execution_arn = aws_apigatewayv2_api.chat_api.execution_arn
   }
 
   table = {
@@ -40,6 +41,13 @@ resource "aws_apigatewayv2_stage" "production" {
   api_id = aws_apigatewayv2_api.chat_api.id
   name = "production"
   auto_deploy = true
+
+  default_route_settings {
+    detailed_metrics_enabled = true
+    logging_level = "INFO"
+    throttling_burst_limit = 50
+    throttling_rate_limit = 100
+  }
 }
 
 module "dynamo_read_write" {
@@ -84,12 +92,37 @@ module "newsletter_topic" {
   name = "Newsletter"
 }
 
+module "authorizer" {
+  source = "./modules/nodejs_lambda"
+  function_name = "authorizer"
+}
+
+resource "aws_apigatewayv2_authorizer" "connect_authorizer" {
+  api_id = local.owning_api.id
+  authorizer_type = "REQUEST"
+  authorizer_uri = module.authorizer.function.invoke_arn
+  identity_sources = ["route.request.querystring.access_token"]
+  name = "connect-authorizer"
+}
+
+resource "aws_lambda_permission" "authorizer" {
+  statement_id = "authorizerAllowExecutionFromAPIGateway"
+  action = "lambda:InvokeFunction"
+  function_name = "authorizer"
+  principal = "apigateway.amazonaws.com"
+  source_arn = "${local.owning_api.execution_arn}/*/*"
+}
+
 module "connect" {
   source = "./modules/chat-route"
   function_name = "connect"
   route_name = "$connect"
   owning_api = local.owning_api
   table = local.table
+  authorizer = {
+    type = "CUSTOM"
+    id = aws_apigatewayv2_authorizer.connect_authorizer.id
+  }
 }
 
 module "default" {

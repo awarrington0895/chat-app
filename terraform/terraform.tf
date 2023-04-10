@@ -9,7 +9,7 @@ terraform {
   required_version = ">= 1.2.0"
 
   backend "s3" {
-    bucket  = "asw-state-bucket"
+    bucket  = "asw-state-bucket2"
     key     = "main/terraform.tfstate"
     region  = "us-east-1"
     encrypt = true
