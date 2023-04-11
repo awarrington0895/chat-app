@@ -24,6 +24,11 @@
     {
       "before": ["leader", "z"],
       "commands": ["workbench.action.toggleZenMode"]
+    },
+    {
+      "before": ["leader", "r", "t", "f", "a"],
+      "commands": ["workbench.action.tasks.runTask"],
+      "args": "npm: tf:apply"
     }
   ],
   "vim.normalModeKeyBindingsNonRecursive": [

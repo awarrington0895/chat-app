@@ -44,10 +44,13 @@ resource "aws_apigatewayv2_stage" "production" {
 
   default_route_settings {
     detailed_metrics_enabled = true
+    data_trace_enabled = true
     logging_level = "INFO"
     throttling_burst_limit = 50
     throttling_rate_limit = 100
   }
+
+  depends_on = [aws_api_gateway_account.this]
 }
 
 module "dynamo_read_write" {
@@ -90,11 +93,54 @@ module "newsletter_topic" {
   version = "5.1.0"
 
   name = "Newsletter"
+
+  topic_policy_statements = {
+    pub = {
+      actions = ["sns:Publish"]
+      principals = [{
+        type = "AWS"
+        identifiers = [module.newsletter.function.role_arn]
+      }]
+    }
+
+    sub = {
+      actions = [
+        "sns:Subscribe",
+        "sns:Receive"
+      ]
+
+      principals = [{
+        type = "AWS"
+        identifiers = ["*"]
+      }]
+
+      conditions = [{
+        test = "StringLike"
+        variable = "sns:Endpoint"
+        values = [module.subscriptionnotifier.function.arn]
+      }]
+    }
+  }
+
+  subscriptions = {
+    newsletter = {
+      protocol = "lambda"
+      endpoint = module.subscriptionnotifier.function.arn
+    }
+  }
 }
 
 module "authorizer" {
   source = "./modules/nodejs_lambda"
   function_name = "authorizer"
+}
+
+module "newsletter" {
+  source = "./modules/nodejs_lambda"
+  function_name = "newsletter"
+  environment = {
+    topicArn = module.newsletter_topic.topic_arn
+  }
 }
 
 resource "aws_apigatewayv2_authorizer" "connect_authorizer" {
@@ -112,6 +158,16 @@ resource "aws_lambda_permission" "authorizer" {
   principal = "apigateway.amazonaws.com"
   source_arn = "${local.owning_api.execution_arn}/*/*"
 }
+
+resource "aws_lambda_permission" "sns_notifier" {
+  statement_id = "authorizerAllowExecutionFromSNS"
+  action = "lambda:InvokeFunction"
+  function_name = "subscriptionnotifier"
+  principal = "sns.amazonaws.com"
+  source_arn = module.newsletter_topic.topic_arn
+}
+
+# Routes
 
 module "connect" {
   source = "./modules/chat-route"
@@ -139,4 +195,23 @@ module "disconnect" {
   route_name = "$disconnect"
   owning_api = local.owning_api
   table = local.table
+}
+
+module "sendmessage" {
+  source = "./modules/chat-route"
+  function_name = "sendmessage"
+  route_name = "sendmessage"
+  owning_api = local.owning_api
+  table = local.table
+}
+
+module "subscriptionnotifier" {
+  source = "./modules/chat-route"
+  function_name = "subscriptionnotifier"
+  route_name = "subscriptionnotifier"
+  owning_api = local.owning_api
+  table = local.table
+  extra_envs = {
+    apiEndpoint = replace(aws_apigatewayv2_stage.production.invoke_url, "wss", "https")
+  }
 }

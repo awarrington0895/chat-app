@@ -7,6 +7,38 @@ variable "environment" {
   default = {}
 }
 
+module "logging_policy" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-policy"
+  version = "5.16.0"
+
+  name = "AllowLogging${var.function_name}"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "this" {
+  for_each = {
+    logging = module.logging_policy.arn
+  }
+
+
+  role       = aws_iam_role.this.name
+  policy_arn = each.value
+}
+
 resource "aws_iam_role" "this" {
   name = "${var.function_name}Role"
 
@@ -36,6 +68,10 @@ resource "aws_lambda_function" "this" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "this" {
+  name = "/aws/lambda/${var.function_name}"
+}
+
 data "archive_file" "this" {
   type        = "zip"
   source_file = "${path.root}/../build/${var.function_name}/index.js"
@@ -44,8 +80,10 @@ data "archive_file" "this" {
 
 output "function" {
   value = {
+    name = aws_lambda_function.this.function_name
     arn = aws_lambda_function.this.arn
     invoke_arn = aws_lambda_function.this.invoke_arn
     role_arn = aws_iam_role.this.arn
+    role_name = aws_iam_role.this.name
   }
 }

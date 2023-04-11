@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "tf:apply",
+      "problemMatcher": [],
+      "label": "tf:apply",
+      "detail": "terraform -chdir=terraform apply -auto-approve"
+    }
+  ]
+}
