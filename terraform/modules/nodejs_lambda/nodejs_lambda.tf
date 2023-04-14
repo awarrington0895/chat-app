@@ -3,7 +3,7 @@ variable "function_name" {
 }
 
 variable "environment" {
-  type = map(string)
+  type    = map(string)
   default = {}
 }
 
@@ -80,10 +80,10 @@ data "archive_file" "this" {
 
 output "function" {
   value = {
-    name = aws_lambda_function.this.function_name
-    arn = aws_lambda_function.this.arn
+    name       = aws_lambda_function.this.function_name
+    arn        = aws_lambda_function.this.arn
     invoke_arn = aws_lambda_function.this.invoke_arn
-    role_arn = aws_iam_role.this.arn
-    role_name = aws_iam_role.this.name
+    role_arn   = aws_iam_role.this.arn
+    role_name  = aws_iam_role.this.name
   }
 }

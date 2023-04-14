@@ -79,8 +79,8 @@ resource "aws_apigatewayv2_route" "this" {
 
 resource "aws_iam_role_policy_attachment" "this" {
   for_each = {
-    dynamo  = var.table.read_write_policy
-    apigw   = module.manage_connection_policy.arn
+    dynamo = var.table.read_write_policy
+    apigw  = module.manage_connection_policy.arn
   }
 
   role       = module.route_handler.function.role_name

@@ -3,7 +3,7 @@ module "s3-bucket" {
   version = "3.8.2"
 
   bucket = "asw-state-bucket3"
-  acl = "private"
+  acl    = "private"
 
   versioning = {
     enabled = false
