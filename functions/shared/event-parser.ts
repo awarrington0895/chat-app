@@ -1,7 +1,7 @@
 import { APIGatewayEvent } from "aws-lambda";
 import { pipe } from "fp-ts/lib/function";
 import { HandlerResponse, badRequest } from "./http-response";
-import * as TE from 'fp-ts/TaskEither';
+import * as TE from "fp-ts/TaskEither";
 
 export const principalId = (event: APIGatewayEvent) =>
   pipe(
@@ -15,10 +15,10 @@ export const groups = (event: APIGatewayEvent) =>
 export const connectionId = (event: APIGatewayEvent) =>
   pipe(event.requestContext.connectionId, parseEventKey("connectionId"));
 
-const parseEventKey =
-  (keyName: string) =>
-  (key: string | undefined): TE.TaskEither<HandlerResponse, string> =>
+function parseEventKey(keyName: string) {
+  return (key: string | undefined): TE.TaskEither<HandlerResponse, string> =>
     pipe(
       key,
       TE.fromNullable(badRequest(`Event must have a valid ${keyName}`))
     );
+}
