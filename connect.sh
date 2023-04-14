@@ -24,3 +24,4 @@ do
 done
 
 wscat -c $WSS_URL?access_token=$token
+# wscat -c $WSS_URL

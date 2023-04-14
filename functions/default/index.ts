@@ -7,7 +7,7 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { APIGatewayEvent, Handler } from "aws-lambda";
 
-import { EventParser, ok, serverError } from "../shared";
+import { EventParser, HandlerResponse, ok, serverError } from "../shared";
 import { pipe } from "fp-ts/function";
 import * as TE from "fp-ts/TaskEither";
 import * as O from 'fp-ts/Option';
@@ -15,7 +15,7 @@ import * as J from 'fp-ts/Json';
 import * as E from 'fp-ts/Either';
 import { Task } from "fp-ts/Task";
 
-export const handler: Handler = async (event: APIGatewayEvent) => {
+export const handler: Handler = async (event: APIGatewayEvent): Promise<HandlerResponse> => {
   return pipe(
     event,
     createGatewayClient,
@@ -29,7 +29,7 @@ export const handler: Handler = async (event: APIGatewayEvent) => {
     TE.chain(({ client, postParams }) => tryPostMessage(client, postParams)),
     TE.map(() => ok()),
     TE.toUnion
-  );
+  )();
 };
 
 function getPostParms(connectionId: string, connectionInfo: string | GetConnectionCommandOutput) {

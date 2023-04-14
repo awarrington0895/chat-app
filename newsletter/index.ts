@@ -40,6 +40,8 @@ const getSnsInput = (event: string): PublishCommandInput => ({
 });
 
 const publishSubscription = (input: PublishCommandInput): TE.TaskEither<HandlerResponse, PublishCommandOutput> => TE.tryCatch(
-  () => snsClient.send(new PublishCommand(input)),
+  () => {
+    return snsClient.send(new PublishCommand(input))
+  },
   () => serverError('Unable to publish message to SNS for newsletter notification')
 );

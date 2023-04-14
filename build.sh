@@ -1,0 +1,1 @@
+npx esbuild ./functions/$1/index.ts --bundle --outfile=build/$1/index.js --platform=node
